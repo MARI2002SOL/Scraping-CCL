@@ -1,6 +1,5 @@
-streamlit==1.35.0
-requests==2.32.3
-beautifulsoup4==4.12.3
-lxml==5.2.2
-playwright==1.44.0
-pandas==2.2.2
+streamlit
+requests
+beautifulsoup4
+html5lib
+playwright>=1.52.0

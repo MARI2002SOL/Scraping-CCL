@@ -23,7 +23,7 @@ with st.sidebar:
     st.image("https://ccleventos.pe/assets/images/logo.webp", width=180)
     st.markdown("## Filtros")
 
-    categoria = st.selectbox("Categoría", list(CATEGORIAS.keys()))
+    categoria = st.selectbox("Categoría", CATEGORIAS)
     buscar_titulo = st.text_input("🔍 Buscar por palabra clave", placeholder="ej: marketing, export...")
 
     st.divider()

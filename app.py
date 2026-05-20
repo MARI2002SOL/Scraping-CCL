@@ -1,7 +1,5 @@
 """
-app.py
-------
-Interfaz Streamlit para el scraper de CCL Eventos.
+app.py — Interfaz Streamlit para CCL Eventos
 Corre con:  streamlit run app.py
 """
 
@@ -10,7 +8,7 @@ import streamlit as st
 
 from scraper import CATEGORIAS, obtener_eventos
 
-# ── Configuración de página ────────────────────────────────────────
+# ── Página ─────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="CCL Eventos",
     page_icon="🏛️",
@@ -23,13 +21,12 @@ with st.sidebar:
     st.image("https://ccleventos.pe/assets/images/logo.webp", width=180)
     st.markdown("## Filtros")
 
-    categoria = st.selectbox("Categoría", CATEGORIAS)
-    buscar_titulo = st.text_input("🔍 Buscar por palabra clave", placeholder="ej: marketing, export...")
+    categoria     = st.selectbox("Categoría", CATEGORIAS)
+    buscar        = st.text_input("🔍 Buscar", placeholder="ej: marketing, exportación...")
 
     st.divider()
-    ejecutar = st.button("▶️ Scrapear ahora", type="primary", use_container_width=True)
-
-    st.caption("Fuente: [ccleventos.pe](https://ccleventos.pe) · Cámara de Comercio de Lima")
+    ejecutar = st.button("▶️ Obtener eventos", type="primary", use_container_width=True)
+    st.caption("Fuente: [ccleventos.pe](https://ccleventos.pe)")
 
 # ── Cabecera ───────────────────────────────────────────────────────
 st.title("🏛️ Eventos CCL")
@@ -39,41 +36,43 @@ st.divider()
 # ── Estado de sesión ───────────────────────────────────────────────
 if "eventos" not in st.session_state:
     st.session_state.eventos = []
-if "metodo" not in st.session_state:
-    st.session_state.metodo = ""
 
-# ── Acción de scrape ───────────────────────────────────────────────
+# ── Fetch ──────────────────────────────────────────────────────────
 if ejecutar:
-    ruta = CATEGORIAS[categoria]
-    with st.spinner("Scrapeando eventos... puede tardar unos segundos ⏳"):
-        st.session_state.eventos = obtener_eventos(categoria)
-    st.session_state.eventos = eventos
-    st.session_state.metodo  = metodo
+    with st.spinner("Obteniendo eventos... ⏳"):
+        try:
+            st.session_state.eventos = obtener_eventos(categoria)
+        except Exception as e:
+            st.error(f"Error al consultar la API: {e}")
+            st.stop()
 
-# ── Mostrar resultados ─────────────────────────────────────────────
+# ── Sin datos ──────────────────────────────────────────────────────
 eventos = st.session_state.eventos
-
 if not eventos:
-    st.info("👈 Selecciona una categoría y haz clic en **Scrapear ahora**.")
+    st.info("👈 Selecciona una categoría y pulsa **Obtener eventos**.")
     st.stop()
 
-# Filtro por palabra clave (sobre los resultados ya scrapeados)
-if buscar_titulo:
-    kw = buscar_titulo.lower()
-    eventos = [e for e in eventos if kw in e["titulo"].lower() or kw in e["categoria"].lower()]
+# ── Filtro por texto ───────────────────────────────────────────────
+if buscar:
+    kw = buscar.lower()
+    eventos = [
+        e for e in eventos
+        if kw in e["titulo"].lower()
+        or kw in e["descripcion"].lower()
+        or kw in e["lugar"].lower()
+    ]
 
-# Métricas rápidas
-col_m1, col_m2, col_m3 = st.columns(3)
-col_m1.metric("Eventos encontrados", len(eventos))
-col_m2.metric("Categoría", categoria.split(" ", 1)[-1])
-col_m3.metric("Motor usado", st.session_state.metodo.split(" ")[0].capitalize())
-
+# ── Métricas ───────────────────────────────────────────────────────
+c1, c2, c3 = st.columns(3)
+c1.metric("Eventos", len(eventos))
+c2.metric("Categoría", categoria)
+c3.metric("Tipos únicos", len({e["tipo"] for e in eventos}))
 st.divider()
 
-# Pestañas: Tarjetas | Tabla | Descargar
-tab_cards, tab_tabla, tab_csv = st.tabs(["🃏 Tarjetas", "📋 Tabla", "⬇️ Exportar"])
+# ── Tabs ───────────────────────────────────────────────────────────
+tab_cards, tab_tabla, tab_csv = st.tabs(["🃏 Tarjetas", "📋 Tabla", "⬇️ Exportar CSV"])
 
-# ── Tab 1: Tarjetas ────────────────────────────────────────────────
+# Tarjetas
 with tab_cards:
     if not eventos:
         st.warning("Sin resultados para ese filtro.")
@@ -85,38 +84,34 @@ with tab_cards:
                     if ev["imagen"]:
                         st.image(ev["imagen"], use_container_width=True)
                     st.markdown(f"**{ev['titulo']}**")
-                    if ev["fecha"]:
-                        st.caption(f"📅 {ev['fecha']}")
-                    if ev["categoria"]:
-                        st.caption(f"🏷️ {ev['categoria']}")
-                    if ev["precio"]:
-                        st.caption(f"💰 {ev['precio']}")
-                    if ev["url"]:
-                        st.link_button("Ver evento →", ev["url"], use_container_width=True)
+                    st.caption(f"📅 {ev['fecha']}")
+                    st.caption(f"📍 {ev['lugar']}")
+                    st.caption(f"🏷️ {ev['tipo']} · {ev['categoria']}")
+                    st.caption(f"💰 {ev['precio']}")
+                    st.link_button("Ver evento →", ev["url"], use_container_width=True)
 
-# ── Tab 2: Tabla ───────────────────────────────────────────────────
+# Tabla
 with tab_tabla:
-    if eventos:
-        df = pd.DataFrame(eventos)
-        st.dataframe(
-            df[["titulo", "fecha", "categoria", "precio", "url"]],
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "url": st.column_config.LinkColumn("Enlace", display_text="Abrir →"),
-            },
-        )
+    df = pd.DataFrame(eventos)
+    st.dataframe(
+        df[["titulo", "fecha", "categoria", "tipo", "lugar", "precio", "clase", "url"]],
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "url": st.column_config.LinkColumn("Enlace", display_text="Abrir →"),
+        },
+    )
 
-# ── Tab 3: Exportar CSV ────────────────────────────────────────────
+# CSV
 with tab_csv:
-    if eventos:
-        df = pd.DataFrame(eventos)
-        csv_bytes = df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="⬇️ Descargar como CSV",
-            data=csv_bytes,
-            file_name="eventos_ccl.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-        st.dataframe(df, use_container_width=True, hide_index=True)
+    df  = pd.DataFrame(eventos)
+    csv = df.drop(columns=["descripcion"]).to_csv(index=False).encode("utf-8")
+    st.download_button(
+        "⬇️ Descargar CSV",
+        data=csv,
+        file_name="eventos_ccl.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
+    st.dataframe(df.drop(columns=["descripcion", "imagen"]),
+                 use_container_width=True, hide_index=True)

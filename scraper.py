@@ -103,7 +103,7 @@ def scrape_con_requests(ruta: str) -> tuple[list[dict], str]:
     try:
         resp = requests.get(url, headers=HEADERS, timeout=15)
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "lxml")
+        soup = BeautifulSoup(resp.text, "html.parser")
         eventos = _parsear_cards(soup)
 
         if eventos:

@@ -11,7 +11,7 @@ import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
-BASE_URL = "https://ccleventos.pe"
+BASE_URL = "https://ccleventos.pe/backend/api/events"
 
 HEADERS = {
     "User-Agent": (

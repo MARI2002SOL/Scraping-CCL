@@ -8,7 +8,7 @@ Corre con:  streamlit run app.py
 import pandas as pd
 import streamlit as st
 
-from scraper import CATEGORIAS, scrape_con_requests
+from scraper import CATEGORIAS, obtener_eventos
 
 # ── Configuración de página ────────────────────────────────────────
 st.set_page_config(
@@ -46,7 +46,7 @@ if "metodo" not in st.session_state:
 if ejecutar:
     ruta = CATEGORIAS[categoria]
     with st.spinner("Scrapeando eventos... puede tardar unos segundos ⏳"):
-        eventos, metodo = scrape_con_requests(ruta)
+        st.session_state.eventos = obtener_eventos(categoria)
     st.session_state.eventos = eventos
     st.session_state.metodo  = metodo
 
